@@ -2,84 +2,94 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Контроллер для управления NPC-машиной, следующей по заданным точкам пути
+/// РљРѕРЅС‚СЂРѕР»Р»РµСЂ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ NPC-РјР°С€РёРЅРѕР№, СЃР»РµРґСѓСЋС‰РµР№ РїРѕ Р·Р°РґР°РЅРЅС‹Рј С‚РѕС‡РєР°Рј РїСѓС‚Рё
 /// </summary>
 public class NPCCarController : MonoBehaviour
 {
     #region Wheel Settings
     [Header("Wheel Settings")]
-    [Tooltip("Коллайдер переднего левого колеса")]
+    [Tooltip("РљРѕР»Р»Р°Р№РґРµСЂ РїРµСЂРµРґРЅРµРіРѕ Р»РµРІРѕРіРѕ РєРѕР»РµСЃР°")]
     public WheelCollider frontLeftWheel;
-    [Tooltip("Коллайдер переднего правого колеса")]
+    [Tooltip("РљРѕР»Р»Р°Р№РґРµСЂ РїРµСЂРµРґРЅРµРіРѕ РїСЂР°РІРѕРіРѕ РєРѕР»РµСЃР°")]
     public WheelCollider frontRightWheel;
-    [Tooltip("Коллайдер заднего левого колеса")]
+    [Tooltip("РљРѕР»Р»Р°Р№РґРµСЂ Р·Р°РґРЅРµРіРѕ Р»РµРІРѕРіРѕ РєРѕР»РµСЃР°")]
     public WheelCollider rearLeftWheel;
-    [Tooltip("Коллайдер заднего правого колеса")]
+    [Tooltip("РљРѕР»Р»Р°Р№РґРµСЂ Р·Р°РґРЅРµРіРѕ РїСЂР°РІРѕРіРѕ РєРѕР»РµСЃР°")]
     public WheelCollider rearRightWheel;
     #endregion
 
     #region Car Physics Settings
     [Header("Car Settings")]
-    [Tooltip("Максимальный крутящий момент двигателя (Н·м)")]
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РєСЂСѓС‚СЏС‰РёР№ РјРѕРјРµРЅС‚ РґРІРёРіР°С‚РµР»СЏ (РќВ·Рј)")]
     public float maxMotorTorque = 200f;
-    [Tooltip("Максимальный угол поворота колес (градусы)")]
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СѓРіРѕР» РїРѕРІРѕСЂРѕС‚Р° РєРѕР»РµСЃ (РіСЂР°РґСѓСЃС‹)")]
     public float maxSteeringAngle = 25f;
-    [Tooltip("Сила торможения (Н·м)")]
-    public float brakeTorque = 500f;
-    [Tooltip("Максимальная скорость движения вперед (км/ч)")]
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ РґРІРёР¶РµРЅРёСЏ РІРїРµСЂРµРґ (РєРј/С‡)")]
     public float maxSpeed = 20f;
-    [Tooltip("Максимальная скорость движения назад (км/ч)")]
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ РґРІРёР¶РµРЅРёСЏ РЅР°Р·Р°Рґ (РєРј/С‡)")]
     public float reverseSpeed = 10f;
-    [Tooltip("Множитель крутящего момента на низких скоростях")]
+    [Tooltip("РњРЅРѕР¶РёС‚РµР»СЊ РєСЂСѓС‚СЏС‰РµРіРѕ РјРѕРјРµРЅС‚Р° РЅР° РЅРёР·РєРёС… СЃРєРѕСЂРѕСЃС‚СЏС…")]
     public float lowSpeedTorqueMultiplier = 2f;
+    #endregion
+
+    #region Braking System Settings
+    [Header("Braking System Settings")]
+    [Tooltip("РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ С‚РѕСЂРјРѕР·РЅРѕРµ СѓСЃРёР»РёРµ (РќВ·Рј)")]
+    public float maxBrakeTorque = 2000f;
+    [Tooltip("РЎРёР»Р° С‚РѕСЂРјРѕР¶РµРЅРёСЏ РґРІРёРіР°С‚РµР»РµРј (РќВ·Рј)")]
+    public float engineBrakeTorque = 300f;
+    [Tooltip("Р’СЂРµРјСЏ РїРѕР»РЅРѕРіРѕ РЅР°СЂР°СЃС‚Р°РЅРёСЏ С‚РѕСЂРјРѕР·РЅРѕРіРѕ СѓСЃРёР»РёСЏ (СЃРµРє)")]
+    public float brakeRampUpTime = 0.5f;
+    [Tooltip("Р’СЂРµРјСЏ РїРѕР»РЅРѕРіРѕ СЃРїР°РґР° С‚РѕСЂРјРѕР·РЅРѕРіРѕ СѓСЃРёР»РёСЏ (СЃРµРє)")]
+    public float brakeRampDownTime = 0.3f;
+    [Tooltip("РЎРєРѕСЂРѕСЃС‚СЊ, РїСЂРё РєРѕС‚РѕСЂРѕР№ РІРєР»СЋС‡Р°РµС‚СЃСЏ С‚РѕСЂРјРѕР¶РµРЅРёРµ РґРІРёРіР°С‚РµР»РµРј (РєРј/С‡)")]
+    public float engineBrakeThreshold = 10f;
+    [Tooltip("РљРѕСЌС„С„РёС†РёРµРЅС‚ СЂР°СЃРїСЂРµРґРµР»РµРЅРёСЏ С‚РѕСЂРјРѕР·РЅРѕРіРѕ СѓСЃРёР»РёСЏ РЅР° РїРµСЂРµРґРЅРёРµ РєРѕР»РµСЃР°")]
+    [Range(0.5f, 0.8f)]
+    public float frontBrakeBias = 0.7f;
     #endregion
 
     #region Path Settings
     [Header("Path Settings")]
-    [Tooltip("Точки пути для следования")]
+    [Tooltip("РўРѕС‡РєРё РїСѓС‚Рё РґР»СЏ СЃР»РµРґРѕРІР°РЅРёСЏ")]
     public List<Transform> waypoints;
-    [Tooltip("Дистанция до точки, при которой она считается достигнутой (метры)")]
+    [Tooltip("Р”РёСЃС‚Р°РЅС†РёСЏ РґРѕ С‚РѕС‡РєРё, РїСЂРё РєРѕС‚РѕСЂРѕР№ РѕРЅР° СЃС‡РёС‚Р°РµС‚СЃСЏ РґРѕСЃС‚РёРіРЅСѓС‚РѕР№ (РјРµС‚СЂС‹)")]
     public float waypointThreshold = 3f;
-    [Tooltip("Зацикливать путь?")]
+    [Tooltip("Р—Р°С†РёРєР»РёРІР°С‚СЊ РїСѓС‚СЊ?")]
     public bool loopPath = true;
-    [Tooltip("Дистанция предвидения для плавного поворота (метры)")]
+    [Tooltip("Р”РёСЃС‚Р°РЅС†РёСЏ РїСЂРµРґРІРёРґРµРЅРёСЏ РґР»СЏ РїР»Р°РІРЅРѕРіРѕ РїРѕРІРѕСЂРѕС‚Р° (РјРµС‚СЂС‹)")]
     public float lookAheadDistance = 4f;
     #endregion
 
     #region AI Settings
     [Header("AI Settings")]
-    [Tooltip("Дистанция обнаружения препятствий (метры)")]
+    [Tooltip("Р”РёСЃС‚Р°РЅС†РёСЏ РѕР±РЅР°СЂСѓР¶РµРЅРёСЏ РїСЂРµРїСЏС‚СЃС‚РІРёР№ (РјРµС‚СЂС‹)")]
     public float safeDistance = 5f;
-    [Tooltip("Сила уклонения от препятствий")]
+    [Tooltip("РЎРёР»Р° СѓРєР»РѕРЅРµРЅРёСЏ РѕС‚ РїСЂРµРїСЏС‚СЃС‚РІРёР№")]
     public float avoidanceStrength = 1f;
-    [Tooltip("Слои для обнаружения препятствий")]
+    [Tooltip("РЎР»РѕРё РґР»СЏ РѕР±РЅР°СЂСѓР¶РµРЅРёСЏ РїСЂРµРїСЏС‚СЃС‚РІРёР№")]
     public LayerMask obstacleLayers;
     #endregion
 
     #region Private Variables
-    // Текущий индекс целевой точки пути
     private int currentWaypointIndex = 0;
-    // Ссылка на Rigidbody машины
     private Rigidbody rb;
-    // Флаг движения задним ходом
     private bool isReversing = false;
-    // Таймер для системы уклонения
     private float avoidanceTimer = 0f;
-    // Текущая скорость машины (м/с)
     private float currentSpeed;
-    // Текущий угол поворота колес
     private float currentSteeringAngle;
-    // Позиция текущей цели
     private Vector3 currentTargetPosition;
+    private float currentBrakeIntensity = 0f;
+    private float targetBrakeIntensity = 0f;
+    private bool isBraking = false;
+    private float lastBrakeTime = 0f;
     #endregion
 
     #region Initialization
     void Start()
     {
-        // Получаем компонент Rigidbody
         rb = GetComponent<Rigidbody>();
 
-        // Проверяем наличие точек пути
         if (waypoints == null || waypoints.Count == 0)
         {
             Debug.LogError("No waypoints assigned to NPCCarController!");
@@ -87,22 +97,15 @@ public class NPCCarController : MonoBehaviour
             return;
         }
 
-        // Настраиваем коллайдеры колес
         ConfigureWheelColliders();
-
-        // Устанавливаем первую цель
         currentTargetPosition = waypoints[currentWaypointIndex].position;
     }
 
-    /// <summary>
-    /// Настройка параметров коллайдеров колес
-    /// </summary>
     void ConfigureWheelColliders()
     {
         WheelCollider[] wheels = { frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel };
         foreach (var wheel in wheels)
         {
-            // Настраиваем параметры физики колес
             wheel.ConfigureVehicleSubsteps(5, 12, 15);
             wheel.wheelDampingRate = 0.5f;
         }
@@ -112,64 +115,51 @@ public class NPCCarController : MonoBehaviour
     #region Main Update Loop
     void FixedUpdate()
     {
-        // Если нет точек пути - выходим
         if (waypoints.Count == 0) return;
 
-        // Обновляем текущую скорость
         currentSpeed = rb.linearVelocity.magnitude;
-
-        // Получаем позицию текущей цели (игнорируем высоту)
         currentTargetPosition = waypoints[currentWaypointIndex].position;
         currentTargetPosition.y = transform.position.y;
 
-        // Вычисляем вектор к цели и его длину
         Vector3 toTarget = currentTargetPosition - transform.position;
         float distanceToTarget = toTarget.magnitude;
         Vector3 directionToTarget = toTarget.normalized;
 
-        // Проверяем, достигли ли текущую точку
         if (HasReachedWaypoint(distanceToTarget, directionToTarget))
         {
             SelectNextWaypoint();
-            return; // Пропускаем остальные вычисления для этого кадра
+            return;
         }
 
-        // Вычисляем угол поворота колес
         float steeringAngle = CalculateSteering(directionToTarget, distanceToTarget);
-
-        // Вычисляем крутящий момент двигателя
         float motorTorque = CalculateMotorTorque(distanceToTarget, directionToTarget);
 
-        // Применяем управление к машине
         MoveCar(steeringAngle, motorTorque);
-
-        // Обновляем визуальное представление колес
         UpdateWheelVisuals();
+        ApplyAntiRoll();
+        StabilizeCar();
     }
     #endregion
 
     #region Waypoint Logic
-    /// <summary>
-    /// Проверяет, достигнута ли текущая точка пути
-    /// </summary>
     bool HasReachedWaypoint(float distance, Vector3 direction)
     {
-        // Проверяем близость к точке
-        bool isCloseEnough = distance < waypointThreshold;
-        // Проверяем, что машина направлена примерно в сторону точки (или почти стоит)
-        bool isFacingWaypoint = Vector3.Dot(transform.forward, direction) > 0.7f || currentSpeed < 0.5f;
+        float dynamicThreshold = waypointThreshold;
+        if (Vector3.Dot(transform.forward, direction) > 0.95f)
+        {
+            dynamicThreshold *= 1.5f;
+        }
+
+        bool isCloseEnough = distance < dynamicThreshold;
+        bool isFacingWaypoint = currentSpeed < 2f || Vector3.Dot(transform.forward, direction) > 0.5f;
 
         return isCloseEnough && isFacingWaypoint;
     }
 
-    /// <summary>
-    /// Выбирает следующую точку пути
-    /// </summary>
     void SelectNextWaypoint()
     {
         currentWaypointIndex++;
 
-        // Проверяем, нужно ли зацикливать путь
         if (currentWaypointIndex >= waypoints.Count)
         {
             if (loopPath)
@@ -178,106 +168,184 @@ public class NPCCarController : MonoBehaviour
             }
             else
             {
-                // Останавливаем машину и отключаем скрипт
-                ApplyBrakes();
                 enabled = false;
                 return;
             }
         }
 
-        // Сбрасываем состояние движения задним ходом
         isReversing = false;
         currentTargetPosition = waypoints[currentWaypointIndex].position;
     }
     #endregion
 
     #region Steering Calculation
-    /// <summary>
-    /// Вычисляет угол поворота колес на основе направления к цели
-    /// </summary>
     float CalculateSteering(Vector3 directionToTarget, float distanceToTarget)
     {
-        // Вычисляем угол между текущим направлением и направлением к цели
         float angleToTarget = Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
 
-        // Если движемся задним ходом - инвертируем угол
-        if (isReversing)
-        {
-            angleToTarget = -angleToTarget;
-        }
+        if (isReversing) angleToTarget = -angleToTarget;
 
-        // Ограничиваем угол максимальным значением
-        float targetSteering = Mathf.Clamp(angleToTarget, -maxSteeringAngle, maxSteeringAngle);
+        float predictionTime = Mathf.Clamp(distanceToTarget / (currentSpeed + 0.1f), 0.5f, 2f);
+        Vector3 predictedPosition = transform.position + rb.linearVelocity * predictionTime;
+        Vector3 predictedDirection = (currentTargetPosition - predictedPosition).normalized;
+        float predictedAngle = Vector3.SignedAngle(transform.forward, predictedDirection, Vector3.up);
 
-        // Плавное уменьшение угла при приближении к точке
-        float steeringSmoothing = Mathf.Clamp(distanceToTarget / waypointThreshold, 0.3f, 1f);
-        return targetSteering * steeringSmoothing;
+        float combinedAngle = Mathf.Lerp(angleToTarget, predictedAngle, Mathf.Clamp01(currentSpeed / 5f));
+
+        float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
+        float maxAllowedAngle = maxSteeringAngle * (1 - speedFactor * 0.8f);
+
+        float targetSteering = Mathf.Clamp(combinedAngle, -maxAllowedAngle, maxAllowedAngle);
+        float approachFactor = Mathf.Clamp(distanceToTarget / (waypointThreshold * 2f), 0.2f, 1f);
+
+        return targetSteering * approachFactor;
     }
     #endregion
 
     #region Motor Logic
-    /// <summary>
-    /// Вычисляет необходимый крутящий момент двигателя
-    /// </summary>
     float CalculateMotorTorque(float distanceToTarget, Vector3 directionToTarget)
     {
-        // Вычисляем угол к цели
         float angleToTarget = Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
         float absAngle = Mathf.Abs(angleToTarget);
 
-        // Проверяем, нужно ли включить задний ход
         if (!isReversing && absAngle > 100f && currentSpeed < 2f)
         {
             isReversing = true;
-            return -maxMotorTorque * 0.5f; // Начинаем движение назад с половинной мощностью
+            return -maxMotorTorque * 0.5f;
         }
 
-        // Логика движения задним ходом
         if (isReversing)
         {
-            // Проверяем, можно ли прекратить движение назад
             if (absAngle < 60f || distanceToTarget < waypointThreshold * 1.5f)
             {
                 isReversing = false;
-                return 0f; // Тормозим
+                return 0f;
             }
 
-            // Ограничиваем скорость заднего хода
-            if (currentSpeed > reverseSpeed / 3.6f) // Конвертируем км/ч в м/с
+            if (currentSpeed > reverseSpeed / 3.6f)
                 return 0f;
 
-            return -maxMotorTorque * 0.6f; // Двигаемся назад с 60% мощности
+            return -maxMotorTorque * 0.6f;
         }
 
-        // Ограничиваем максимальную скорость вперед
-        if (currentSpeed > maxSpeed / 3.6f) // Конвертируем км/ч в м/с
+        float speedReduction = Mathf.Clamp01(distanceToTarget / (waypointThreshold * 3f));
+        float targetSpeed = maxSpeed * speedReduction;
+
+        if (currentSpeed > targetSpeed / 3.6f)
             return 0f;
 
-        // Уменьшаем мощность на резких поворотах
-        float angleFactor = Mathf.Clamp01(1f - absAngle / 90f);
+        float angleFactor = Mathf.Clamp01(1f - absAngle / 120f);
+        float torqueMultiplier = currentSpeed < 3f ? lowSpeedTorqueMultiplier : 1f;
+        float accelerationSmoothing = Mathf.Clamp01(currentSpeed / 2f);
 
-        // Увеличиваем мощность на низких скоростях
-        float torqueMultiplier = currentSpeed < 5f ? lowSpeedTorqueMultiplier : 1f;
+        return maxMotorTorque * angleFactor * torqueMultiplier * speedReduction * accelerationSmoothing;
+    }
+    #endregion
 
-        return maxMotorTorque * angleFactor * torqueMultiplier;
+    #region New Braking System
+    void UpdateBrakingSystem()
+    {
+        targetBrakeIntensity = CalculateTargetBrakeIntensity();
+
+        float rampSpeed = isBraking ?
+            (1f / brakeRampUpTime) * Time.fixedDeltaTime :
+            (1f / brakeRampDownTime) * Time.fixedDeltaTime;
+
+        currentBrakeIntensity = Mathf.MoveTowards(
+            currentBrakeIntensity,
+            targetBrakeIntensity,
+            rampSpeed
+        );
+
+        ApplyBrakingForces();
+    }
+
+    float CalculateTargetBrakeIntensity()
+    {
+        // РџРѕР»СѓС‡Р°РµРј С‚РµРєСѓС‰РµРµ РЅР°РїСЂР°РІР»РµРЅРёРµ Рё СЂР°СЃСЃС‚РѕСЏРЅРёРµ РґРѕ С†РµР»Рё
+        Vector3 toTarget = (currentTargetPosition - transform.position);
+        float distanceToWaypoint = toTarget.magnitude;
+        Vector3 directionToTarget = toTarget.normalized;
+
+        // 1. РўРѕСЂРјРѕР¶РµРЅРёРµ РїСЂРё РїСЂРµРІС‹С€РµРЅРёРё СЃРєРѕСЂРѕСЃС‚Рё
+        float currentMaxSpeed = isReversing ? reverseSpeed : maxSpeed;
+        float overspeedRatio = Mathf.Clamp01(
+            (currentSpeed * 3.6f - currentMaxSpeed) / (currentMaxSpeed * 0.2f)
+        );
+
+        // 2. РўРѕСЂРјРѕР¶РµРЅРёРµ РїРµСЂРµРґ РїРѕРІРѕСЂРѕС‚РѕРј
+        float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+        float turnBrakeRatio = Mathf.Clamp01((angleToTarget - 30f) / 60f);
+
+        // РЈС‡РёС‚С‹РІР°РµРј СЂР°СЃСЃС‚РѕСЏРЅРёРµ РґРѕ С‚РѕС‡РєРё Рё СЃРєРѕСЂРѕСЃС‚СЊ
+        float distanceFactor = Mathf.Clamp01(
+            1f - (distanceToWaypoint / (waypointThreshold * 3f))
+        );
+        float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
+
+        float turnBrakeIntensity = turnBrakeRatio * distanceFactor * speedFactor;
+
+        // 3. РљРѕРјР±РёРЅРёСЂСѓРµРј С„Р°РєС‚РѕСЂС‹ С‚РѕСЂРјРѕР¶РµРЅРёСЏ
+        float combinedIntensity = Mathf.Max(overspeedRatio, turnBrakeIntensity);
+
+        // РћР±РЅРѕРІР»СЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ С‚РѕСЂРјРѕР¶РµРЅРёСЏ
+        isBraking = combinedIntensity > 0.05f;
+        if (isBraking) lastBrakeTime = Time.time;
+
+        return Mathf.Clamp01(combinedIntensity);
+    }
+
+    void ApplyBrakingForces()
+    {
+        float brakeTorque = currentBrakeIntensity * maxBrakeTorque;
+
+        // РџСЂРёРјРµРЅСЏРµРј Р±РѕР»СЊС€Рµ С‚РѕСЂРјРѕР·РЅРѕРіРѕ СѓСЃРёР»РёСЏ РЅР° РїРµСЂРµРґРЅРёРµ РєРѕР»РµСЃР°
+        frontLeftWheel.brakeTorque = brakeTorque * frontBrakeBias;
+        frontRightWheel.brakeTorque = brakeTorque * frontBrakeBias;
+        rearLeftWheel.brakeTorque = brakeTorque * (1f - frontBrakeBias);
+        rearRightWheel.brakeTorque = brakeTorque * (1f - frontBrakeBias);
+
+        // РўРѕСЂРјРѕР¶РµРЅРёРµ РґРІРёРіР°С‚РµР»РµРј
+        if (currentBrakeIntensity > 0.1f &&
+            currentSpeed * 3.6f > engineBrakeThreshold &&
+            !isReversing)
+        {
+            float engineBrake = currentBrakeIntensity * engineBrakeTorque;
+            rearLeftWheel.brakeTorque += engineBrake;
+            rearRightWheel.brakeTorque += engineBrake;
+        }
+
+        if (currentBrakeIntensity < 0.01f)
+        {
+            ReleaseBrakes();
+        }
+    }
+
+    void ReleaseBrakes()
+    {
+        frontLeftWheel.brakeTorque = 0f;
+        frontRightWheel.brakeTorque = 0f;
+        rearLeftWheel.brakeTorque = 0f;
+        rearRightWheel.brakeTorque = 0f;
+        currentBrakeIntensity = 0f;
+        targetBrakeIntensity = 0f;
+        isBraking = false;
     }
     #endregion
 
     #region Car Control
-    /// <summary>
-    /// Применяет вычисленные параметры управления к машине
-    /// </summary>
     void MoveCar(float steeringAngle, float motorTorque)
     {
-        // Плавно изменяем угол поворота
-        currentSteeringAngle = Mathf.Lerp(currentSteeringAngle, steeringAngle, Time.fixedDeltaTime * 1f);
+        currentSteeringAngle = Mathf.Lerp(
+            currentSteeringAngle,
+            steeringAngle,
+            Time.fixedDeltaTime * 2f
+        );
         frontLeftWheel.steerAngle = currentSteeringAngle;
         frontRightWheel.steerAngle = currentSteeringAngle;
 
-        // Распределяем крутящий момент в зависимости от режима движения
         if (isReversing)
         {
-            // При движении назад - крутящий момент на передние колеса
             frontLeftWheel.motorTorque = motorTorque;
             frontRightWheel.motorTorque = motorTorque;
             rearLeftWheel.motorTorque = 0f;
@@ -285,51 +353,48 @@ public class NPCCarController : MonoBehaviour
         }
         else
         {
-            // При движении вперед - крутящий момент на задние колеса
             rearLeftWheel.motorTorque = motorTorque;
             rearRightWheel.motorTorque = motorTorque;
             frontLeftWheel.motorTorque = 0f;
             frontRightWheel.motorTorque = 0f;
         }
 
-        // Применяем тормоза при необходимости
-        if (motorTorque == 0f && currentSpeed > 0.1f)
-        {
-            ApplyBrakes();
-        }
-        else
-        {
-            ReleaseBrakes();
-        }
+        UpdateBrakingSystem();
+        UpdateWheelVisuals();
+        ApplyAntiRoll();
+        StabilizeCar();
     }
 
-    /// <summary>
-    /// Включает тормоза на всех колесах
-    /// </summary>
-    void ApplyBrakes()
+    void StabilizeCar()
     {
-        frontLeftWheel.brakeTorque = brakeTorque;
-        frontRightWheel.brakeTorque = brakeTorque;
-        rearLeftWheel.brakeTorque = brakeTorque;
-        rearRightWheel.brakeTorque = brakeTorque;
+        if (Vector3.Angle(transform.up, Vector3.up) > 45f)
+        {
+            Vector3 torque = Vector3.Cross(transform.up, Vector3.up) * rb.mass * 0.1f;
+            rb.AddTorque(torque, ForceMode.Impulse);
+        }
+
+        float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
+        rb.angularDamping = 0.5f + speedFactor * 2f;
     }
 
-    /// <summary>
-    /// Отключает тормоза на всех колесах
-    /// </summary>
-    void ReleaseBrakes()
+    void ApplyAntiRoll()
     {
-        frontLeftWheel.brakeTorque = 0f;
-        frontRightWheel.brakeTorque = 0f;
-        rearLeftWheel.brakeTorque = 0f;
-        rearRightWheel.brakeTorque = 0f;
+        WheelHit hit;
+        bool groundedFL = frontLeftWheel.GetGroundHit(out hit);
+        bool groundedFR = frontRightWheel.GetGroundHit(out hit);
+
+        if (groundedFL != groundedFR)
+        {
+            rb.AddForceAtPosition(
+                Vector3.down * rb.mass * 0.1f,
+                transform.position + transform.up * 0.5f,
+                ForceMode.Impulse
+            );
+        }
     }
     #endregion
 
     #region Wheel Visualization
-    /// <summary>
-    /// Обновляет визуальное представление всех колес
-    /// </summary>
     void UpdateWheelVisuals()
     {
         UpdateWheelVisual(frontLeftWheel);
@@ -338,34 +403,27 @@ public class NPCCarController : MonoBehaviour
         UpdateWheelVisual(rearRightWheel);
     }
 
-    /// <summary>
-    /// Синхронизирует визуальное представление колеса с его физическим состоянием
-    /// </summary>
     void UpdateWheelVisual(WheelCollider collider)
     {
         if (collider.transform.childCount == 0) return;
 
-        // Получаем визуальное представление колеса
         Transform visualWheel = collider.transform.GetChild(0);
-
-        // Получаем актуальную позицию и поворот колеса из коллайдера
         collider.GetWorldPose(out Vector3 position, out Quaternion rotation);
 
-        // Плавно обновляем позицию и поворот визуального объекта
-        visualWheel.transform.position = Vector3.Lerp(visualWheel.transform.position, position, Time.deltaTime * 20f);
+        visualWheel.transform.position = Vector3.Lerp(
+            visualWheel.transform.position,
+            position,
+            Time.deltaTime * 20f
+        );
         visualWheel.transform.rotation = rotation;
     }
     #endregion
 
     #region Debug Visualization
-    /// <summary>
-    /// Отрисовывает Gizmos для визуализации пути в редакторе
-    /// </summary>
     void OnDrawGizmosSelected()
     {
         if (waypoints == null || waypoints.Count == 0) return;
 
-        // Отрисовываем точки пути зеленым цветом
         Gizmos.color = Color.green;
         for (int i = 0; i < waypoints.Count; i++)
         {
@@ -373,7 +431,6 @@ public class NPCCarController : MonoBehaviour
 
             Gizmos.DrawSphere(waypoints[i].position, 0.5f);
 
-            // Отрисовываем линии между точками
             if (i < waypoints.Count - 1 && waypoints[i + 1] != null)
             {
                 Gizmos.DrawLine(waypoints[i].position, waypoints[i + 1].position);
@@ -384,7 +441,6 @@ public class NPCCarController : MonoBehaviour
             }
         }
 
-        // В режиме игры отрисовываем текущую цель красным цветом
         if (Application.isPlaying && waypoints.Count > currentWaypointIndex)
         {
             Gizmos.color = Color.red;

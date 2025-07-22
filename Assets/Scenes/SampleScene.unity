@@ -1943,15 +1943,15 @@ WheelCollider:
   m_WheelDampingRate: 0.25
   m_ForwardFriction:
     m_ExtremumSlip: 0.4
-    m_ExtremumValue: 1
+    m_ExtremumValue: 20
     m_AsymptoteSlip: 0.8
-    m_AsymptoteValue: 0.5
+    m_AsymptoteValue: 20
     m_Stiffness: 1
   m_SidewaysFriction:
     m_ExtremumSlip: 0.2
-    m_ExtremumValue: 1
+    m_ExtremumValue: 20
     m_AsymptoteSlip: 0.5
-    m_AsymptoteValue: 0.75
+    m_AsymptoteValue: 20
     m_Stiffness: 1
   m_IncludeLayers:
     serializedVersion: 2
@@ -2548,14 +2548,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1236161075}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -77.6, y: 3.25, z: 2.07}
   m_LocalScale: {x: 4, y: 3, z: 6}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 875860860}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!54 &1236161080
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2601,10 +2601,15 @@ MonoBehaviour:
   rearRightWheel: {fileID: 209021117}
   maxMotorTorque: 200
   maxSteeringAngle: 45
-  brakeTorque: 500
   maxSpeed: 20
   reverseSpeed: 10
   lowSpeedTorqueMultiplier: 30
+  maxBrakeTorque: 2000
+  engineBrakeTorque: 300
+  brakeRampUpTime: 0.5
+  brakeRampDownTime: 0.3
+  engineBrakeThreshold: 10
+  frontBrakeBias: 0.7
   waypoints:
   - {fileID: 228580466}
   - {fileID: 1204701104}
@@ -3707,10 +3712,15 @@ MonoBehaviour:
   rearRightWheel: {fileID: 1862973434}
   maxMotorTorque: 500
   maxSteeringAngle: 45
-  brakeTorque: 2000
   maxSpeed: 60
   reverseSpeed: 20
   lowSpeedTorqueMultiplier: 3
+  maxBrakeTorque: 2000
+  engineBrakeTorque: 300
+  brakeRampUpTime: 0.5
+  brakeRampDownTime: 0.3
+  engineBrakeThreshold: 10
+  frontBrakeBias: 0.7
   waypoints:
   - {fileID: 228580466}
   - {fileID: 1204701104}
@@ -3731,8 +3741,8 @@ MonoBehaviour:
   waypointThreshold: 2.5
   loopPath: 1
   lookAheadDistance: 4
-  safeDistance: 8
-  avoidanceStrength: 1.5
+  safeDistance: 5
+  avoidanceStrength: 1
   obstacleLayers:
     serializedVersion: 2
     m_Bits: 0
