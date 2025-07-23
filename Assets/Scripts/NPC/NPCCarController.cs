@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -22,6 +23,7 @@ public class NPCCarController : MonoBehaviour
     [Header("Car Settings")]
     [Tooltip("Максимальный крутящий момент двигателя (Н·м)")]
     public float maxMotorTorque = 200f;
+
     [Tooltip("Максимальный угол поворота колес (градусы)")]
     public float maxSteeringAngle = 25f;
     [Tooltip("Максимальная скорость движения вперед (км/ч)")]
@@ -71,6 +73,10 @@ public class NPCCarController : MonoBehaviour
     public LayerMask obstacleLayers;
     #endregion
 
+    [Tooltip("Множитель крутящего момента заднего хода")]
+    [Range(0.5f, 2f)]
+    public float reverseTorqueMultiplier = 1.3f;
+
     #region Private Variables
     private int currentWaypointIndex = 0;
     private Rigidbody rb;
@@ -83,6 +89,19 @@ public class NPCCarController : MonoBehaviour
     private float targetBrakeIntensity = 0f;
     private bool isBraking = false;
     private float lastBrakeTime = 0f;
+    private float lastReverseStartTime;
+    #endregion
+    #region Private Variables
+    private bool isStuck = false;
+    private float stuckTimer = 0f;
+    private const float STUCK_TIME_THRESHOLD = 2f;
+    private const float STUCK_SPEED_THRESHOLD = 0.5f;
+    private float slopeAngle;
+    private float slopeSpeedMultiplier = 1f;
+    private const float SLOPE_CHECK_DISTANCE = 5f;
+    public  float MAX_SLOPE_ANGLE = 30f;
+    public  float SLOPE_SPEED_BOOST = 1.5f; // Множитель скорости на подъеме
+    public  float SLOPE_SPEED_REDUCTION = 0.7f; // Множитель скорости на спуске
     #endregion
 
     #region Initialization
@@ -116,8 +135,19 @@ public class NPCCarController : MonoBehaviour
     void FixedUpdate()
     {
         if (waypoints.Count == 0) return;
-
+        CheckSlope(); // Проверяем наклон поверхности
         currentSpeed = rb.linearVelocity.magnitude;
+        // Ограничение угловой скорости при реверсе
+        if (isReversing && rb.angularVelocity.magnitude > 2f)
+        {
+            rb.angularVelocity = rb.angularVelocity.normalized * 2f;
+        }
+        // Сбрасываем состояние застревания при достаточной скорости
+        if (currentSpeed > 2f && isStuck)
+        {
+            isStuck = false;
+            stuckTimer = 0f;
+        }
         currentTargetPosition = waypoints[currentWaypointIndex].position;
         currentTargetPosition.y = transform.position.y;
 
@@ -133,7 +163,7 @@ public class NPCCarController : MonoBehaviour
 
         float steeringAngle = CalculateSteering(directionToTarget, distanceToTarget);
         float motorTorque = CalculateMotorTorque(distanceToTarget, directionToTarget);
-
+        ConfigureWheelsForReverse();
         MoveCar(steeringAngle, motorTorque);
         UpdateWheelVisuals();
         ApplyAntiRoll();
@@ -142,6 +172,55 @@ public class NPCCarController : MonoBehaviour
     #endregion
 
     #region Waypoint Logic
+    void CheckSlope()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out hit, SLOPE_CHECK_DISTANCE))
+        {
+            slopeAngle = Vector3.Angle(hit.normal, Vector3.up);
+
+            // Более точное определение направления наклона
+            Vector3 cross = Vector3.Cross(hit.normal, Vector3.up);
+            float slopeDirection = Vector3.Dot(cross, transform.right);
+
+            // Плавное изменение множителя с учетом текущей скорости
+            float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
+
+            if (slopeAngle > 5f)
+            {
+                // Подъем в гору (увеличиваем мощность)
+                if (slopeDirection < -0.05f)
+                {
+                    float angleFactor = Mathf.Clamp01(slopeAngle / MAX_SLOPE_ANGLE);
+                    slopeSpeedMultiplier = Mathf.Lerp(1f, SLOPE_SPEED_BOOST, angleFactor * speedFactor);
+                }
+                // Спуск с горы (уменьшаем мощность)
+                else if (slopeDirection > 0.05f)
+                {
+                    float angleFactor = Mathf.Clamp01(slopeAngle / MAX_SLOPE_ANGLE);
+                    slopeSpeedMultiplier = Mathf.Lerp(SLOPE_SPEED_REDUCTION, 1f, 1 - (angleFactor * speedFactor));
+                }
+                else // Боковой наклон
+                {
+                    slopeSpeedMultiplier = 1f;
+                }
+            }
+            else
+            {
+                slopeSpeedMultiplier = 1f;
+            }
+
+            // Дополнительная регулировка при движении назад
+            if (isReversing)
+            {
+                slopeSpeedMultiplier = Mathf.Clamp(slopeSpeedMultiplier, 0.7f, 1.2f);
+            }
+        }
+        else
+        {
+            slopeSpeedMultiplier = 1f;
+        }
+    }
     bool HasReachedWaypoint(float distance, Vector3 direction)
     {
         float dynamicThreshold = waypointThreshold;
@@ -183,17 +262,31 @@ public class NPCCarController : MonoBehaviour
     {
         float angleToTarget = Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
 
-        if (isReversing) angleToTarget = -angleToTarget;
+        // Усиленный руль в режиме застревания или при заднем ходе
+        float steeringMultiplier = 1f;
+        
 
+        if (isReversing)
+        {
+            angleToTarget = -angleToTarget * steeringMultiplier;
+        }
+        else
+        {
+            angleToTarget *= steeringMultiplier;
+        }
+
+        // Плавное предсказание
         float predictionTime = Mathf.Clamp(distanceToTarget / (currentSpeed + 0.1f), 0.5f, 2f);
         Vector3 predictedPosition = transform.position + rb.linearVelocity * predictionTime;
         Vector3 predictedDirection = (currentTargetPosition - predictedPosition).normalized;
-        float predictedAngle = Vector3.SignedAngle(transform.forward, predictedDirection, Vector3.up);
+        float predictedAngle = Vector3.SignedAngle(transform.forward, predictedDirection, Vector3.up) * steeringMultiplier;
+
+        if (isReversing) predictedAngle = -predictedAngle;
 
         float combinedAngle = Mathf.Lerp(angleToTarget, predictedAngle, Mathf.Clamp01(currentSpeed / 5f));
 
         float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
-        float maxAllowedAngle = maxSteeringAngle * (1 - speedFactor * 0.8f);
+        float maxAllowedAngle = maxSteeringAngle * (1 - speedFactor * 0.5f) * steeringMultiplier;
 
         float targetSteering = Mathf.Clamp(combinedAngle, -maxAllowedAngle, maxAllowedAngle);
         float approachFactor = Mathf.Clamp(distanceToTarget / (waypointThreshold * 2f), 0.2f, 1f);
@@ -208,28 +301,121 @@ public class NPCCarController : MonoBehaviour
         float angleToTarget = Vector3.SignedAngle(transform.forward, directionToTarget, Vector3.up);
         float absAngle = Mathf.Abs(angleToTarget);
 
-        if (!isReversing && absAngle > 100f && currentSpeed < 2f)
+        // Проверка на застревание
+        CheckIfStuck(distanceToTarget, angleToTarget);
+
+        // Специальный режим при застревании
+        if (isStuck)
+        {
+            return HandleStuckSituation(distanceToTarget, angleToTarget);
+        }
+
+        // Обычная логика движения
+        if (!isReversing && ShouldReverse(distanceToTarget, angleToTarget))
         {
             isReversing = true;
+            lastReverseStartTime = Time.time;
             return -maxMotorTorque * 0.5f;
         }
 
         if (isReversing)
         {
-            if (absAngle < 60f || distanceToTarget < waypointThreshold * 1.5f)
-            {
-                isReversing = false;
-                return 0f;
-            }
-
-            if (currentSpeed > reverseSpeed / 3.6f)
-                return 0f;
-
-            return -maxMotorTorque * 0.6f;
+            return HandleReversing(distanceToTarget, angleToTarget);
         }
 
+        return HandleForwardMovement(distanceToTarget, absAngle);
+    }
+
+    void CheckIfStuck(float distanceToTarget, float angleToTarget)
+    {
+        // Дополнительные условия для определения застревания:
+        // 1. Машина не движется (или почти не движется)
+        // 2. Большой угол к цели
+        // 3. Находится далеко от точки
+        // 4. Не в режиме заднего хода
+        bool isNotMoving = currentSpeed < STUCK_SPEED_THRESHOLD;
+        bool isBadAngle = Mathf.Abs(angleToTarget) > 70f;
+        bool isFarFromTarget = distanceToTarget > waypointThreshold;
+        bool isNotReversing = !isReversing;
+
+        if (isNotMoving && isBadAngle && isFarFromTarget && isNotReversing)
+        {
+            stuckTimer += Time.fixedDeltaTime;
+            if (stuckTimer > STUCK_TIME_THRESHOLD)
+            {
+                isStuck = true;
+                stuckTimer = 0f;
+                // Принудительно активируем задний ход
+                isReversing = true;
+            }
+        }
+        else
+        {
+            stuckTimer = Mathf.Max(0f, stuckTimer - Time.fixedDeltaTime * 0.5f);
+        }
+    }
+
+
+    float HandleStuckSituation(float distanceToTarget, float angleToTarget)
+    {
+        float cycleTime = Mathf.PingPong(Time.time * 1.5f, 3f);
+
+        if (cycleTime < 2f) // Режим заднего хода (2 секунды)
+        {
+            isReversing = true;
+            // УБРАНО искусственное увеличение угла поворота
+            return -maxMotorTorque * 0.9f;
+        }
+        else // Режим переднего хода (1 секунда)
+        {
+            isReversing = false;
+            if (currentSpeed > 1.5f && Mathf.Abs(angleToTarget) < 50f)
+            {
+                isStuck = false;
+            }
+            return maxMotorTorque * 0.6f;
+        }
+    }
+
+    float HandleReversing(float distanceToTarget, float angleToTarget)
+    {
+        // Плавное увеличение мощности при начале движения назад
+        float reversePower = Mathf.Lerp(0.3f, 1f, Mathf.Clamp01(Time.time - lastReverseStartTime));
+
+        // Компенсация бокового скольжения
+        Vector3 localVel = transform.InverseTransformDirection(rb.linearVelocity);
+        if (Mathf.Abs(localVel.x) > 0.5f)
+        {
+            float compensation = -localVel.x * 20f * rb.mass * Time.fixedDeltaTime;
+            rb.AddRelativeTorque(Vector3.up * compensation, ForceMode.VelocityChange);
+        }
+
+        // Условия для прекращения заднего хода
+        bool shouldStopReversing = Mathf.Abs(angleToTarget) < 90f
+                                && Vector3.Dot(transform.forward, (currentTargetPosition - transform.position).normalized) > 0.7f;
+
+        if (shouldStopReversing)
+        {
+            isReversing = false;
+            return 0f;
+        }
+
+        // Динамическая мощность в зависимости от угла
+        float angleFactor = Mathf.Clamp01(Mathf.Abs(angleToTarget) / 90f);
+
+        // Учитываем наклон при движении назад (уменьшаем мощность при спуске)
+        float slopeEffect = slopeSpeedMultiplier < 1f ? 0.7f : 1f;
+
+        return -maxMotorTorque * reverseTorqueMultiplier * reversePower * (0.7f + angleFactor * 0.3f) * slopeEffect;
+    }
+
+    float HandleForwardMovement(float distanceToTarget, float absAngle)
+    {
+        // Учитываем влияние наклона только при достаточной скорости
+        float effectiveSlopeMultiplier = currentSpeed > 1f ? slopeSpeedMultiplier : 1f;
+
         float speedReduction = Mathf.Clamp01(distanceToTarget / (waypointThreshold * 3f));
-        float targetSpeed = maxSpeed * speedReduction;
+        float targetSpeed = maxSpeed * speedReduction * effectiveSlopeMultiplier;
 
         if (currentSpeed > targetSpeed / 3.6f)
             return 0f;
@@ -238,7 +424,32 @@ public class NPCCarController : MonoBehaviour
         float torqueMultiplier = currentSpeed < 3f ? lowSpeedTorqueMultiplier : 1f;
         float accelerationSmoothing = Mathf.Clamp01(currentSpeed / 2f);
 
-        return maxMotorTorque * angleFactor * torqueMultiplier * speedReduction * accelerationSmoothing;
+        // Усиливаем эффект наклона при низких скоростях
+        float slopeEffect = Mathf.Lerp(1.5f, 1f, currentSpeed / 5f);
+
+        return maxMotorTorque * angleFactor * torqueMultiplier * speedReduction *
+               accelerationSmoothing * Mathf.Pow(effectiveSlopeMultiplier, slopeEffect);
+    }
+
+    bool ShouldReverse(float distanceToTarget, float angleToTarget)
+    {
+        // Если машина почти остановилась и сильно отклонена от цели
+        if (currentSpeed < 1.5f && Mathf.Abs(angleToTarget) > 90f)
+            return true;
+
+        // Если точка позади и достаточно близко
+        Vector3 toTarget = (currentTargetPosition - transform.position).normalized;
+        float dot = Vector3.Dot(transform.forward, toTarget);
+
+        // Более агрессивное определение необходимости заднего хода
+        if (dot < -0.3f && distanceToTarget < waypointThreshold * 3f)
+            return true;
+
+        // Если машина проехала точку
+        if (distanceToTarget < waypointThreshold * 1.5f && dot < 0.4f)
+            return true;
+
+        return false;
     }
     #endregion
 
@@ -247,9 +458,10 @@ public class NPCCarController : MonoBehaviour
     {
         targetBrakeIntensity = CalculateTargetBrakeIntensity();
 
+        // Более плавное изменение интенсивности торможения
         float rampSpeed = isBraking ?
-            (1f / brakeRampUpTime) * Time.fixedDeltaTime :
-            (1f / brakeRampDownTime) * Time.fixedDeltaTime;
+            (1f / Mathf.Lerp(brakeRampUpTime, brakeRampUpTime * 0.5f, currentSpeed / (maxSpeed / 3.6f))) * Time.fixedDeltaTime :
+            (1f / Mathf.Lerp(brakeRampDownTime, brakeRampDownTime * 2f, currentBrakeIntensity)) * Time.fixedDeltaTime;
 
         currentBrakeIntensity = Mathf.MoveTowards(
             currentBrakeIntensity,
@@ -299,25 +511,42 @@ public class NPCCarController : MonoBehaviour
     {
         float brakeTorque = currentBrakeIntensity * maxBrakeTorque;
 
-        // Применяем больше тормозного усилия на передние колеса
-        frontLeftWheel.brakeTorque = brakeTorque * frontBrakeBias;
-        frontRightWheel.brakeTorque = brakeTorque * frontBrakeBias;
-        rearLeftWheel.brakeTorque = brakeTorque * (1f - frontBrakeBias);
-        rearRightWheel.brakeTorque = brakeTorque * (1f - frontBrakeBias);
+        // Динамическое распределение тормозного усилия
+        float dynamicBias = frontBrakeBias;
 
-        // Торможение двигателем
-        if (currentBrakeIntensity > 0.1f &&
-            currentSpeed * 3.6f > engineBrakeThreshold &&
-            !isReversing)
+        // Учитываем поворот при торможении
+        if (Mathf.Abs(currentSteeringAngle) > 5f)
         {
-            float engineBrake = currentBrakeIntensity * engineBrakeTorque;
-            rearLeftWheel.brakeTorque += engineBrake;
-            rearRightWheel.brakeTorque += engineBrake;
+            float turnFactor = Mathf.Clamp01(Mathf.Abs(currentSteeringAngle) / maxSteeringAngle);
+            dynamicBias = Mathf.Lerp(frontBrakeBias, 0.55f, turnFactor);
+
+            // Компенсация увода в сторону
+            if (currentSteeringAngle > 0) // Поворот вправо
+            {
+                frontLeftWheel.brakeTorque = brakeTorque * dynamicBias * 1.1f;
+                frontRightWheel.brakeTorque = brakeTorque * dynamicBias * 0.9f;
+            }
+            else // Поворот влево
+            {
+                frontLeftWheel.brakeTorque = brakeTorque * dynamicBias * 0.9f;
+                frontRightWheel.brakeTorque = brakeTorque * dynamicBias * 1.1f;
+            }
+        }
+        else
+        {
+            frontLeftWheel.brakeTorque = brakeTorque * dynamicBias;
+            frontRightWheel.brakeTorque = brakeTorque * dynamicBias;
         }
 
-        if (currentBrakeIntensity < 0.01f)
+        rearLeftWheel.brakeTorque = brakeTorque * (1f - dynamicBias);
+        rearRightWheel.brakeTorque = brakeTorque * (1f - dynamicBias);
+
+        // Торможение двигателем (более плавное)
+        if (currentBrakeIntensity > 0.1f && currentSpeed * 3.6f > engineBrakeThreshold && !isReversing)
         {
-            ReleaseBrakes();
+            float engineBrake = Mathf.Lerp(0, engineBrakeTorque, currentBrakeIntensity * 0.5f);
+            rearLeftWheel.brakeTorque += engineBrake;
+            rearRightWheel.brakeTorque += engineBrake;
         }
     }
 
@@ -336,20 +565,43 @@ public class NPCCarController : MonoBehaviour
     #region Car Control
     void MoveCar(float steeringAngle, float motorTorque)
     {
+        // Плавное изменение угла поворота с разными параметрами для переднего/заднего хода
+        float steerSpeed = isReversing ? 3f : 5f;
+        float maxAngle = isReversing ? maxSteeringAngle * 1.3f : maxSteeringAngle;
+
         currentSteeringAngle = Mathf.Lerp(
             currentSteeringAngle,
             steeringAngle,
-            Time.fixedDeltaTime * 2f
+            Time.fixedDeltaTime * steerSpeed
         );
-        frontLeftWheel.steerAngle = currentSteeringAngle;
-        frontRightWheel.steerAngle = currentSteeringAngle;
 
+        // Ограничиваем угол поворота
+        currentSteeringAngle = Mathf.Clamp(currentSteeringAngle, -maxAngle, maxAngle);
+
+        // Применяем угол только если есть движение
+        if (Mathf.Abs(motorTorque) > 0.1f || currentSpeed > 0.5f)
+        {
+            frontLeftWheel.steerAngle = currentSteeringAngle;
+            frontRightWheel.steerAngle = currentSteeringAngle;
+        }
+        else
+        {
+            // Плавный сброс угла при остановке
+            frontLeftWheel.steerAngle = Mathf.Lerp(frontLeftWheel.steerAngle, 0f, Time.fixedDeltaTime * 5f);
+            frontRightWheel.steerAngle = Mathf.Lerp(frontRightWheel.steerAngle, 0f, Time.fixedDeltaTime * 5f);
+        }
+
+        // Распределение мощности для заднего хода
         if (isReversing)
         {
-            frontLeftWheel.motorTorque = motorTorque;
-            frontRightWheel.motorTorque = motorTorque;
-            rearLeftWheel.motorTorque = 0f;
-            rearRightWheel.motorTorque = 0f;
+            // 30% на передние, 70% на задние колеса
+            float frontTorque = motorTorque * 0.3f;
+            float rearTorque = motorTorque * 0.7f;
+
+            frontLeftWheel.motorTorque = frontTorque;
+            frontRightWheel.motorTorque = frontTorque;
+            rearLeftWheel.motorTorque = rearTorque;
+            rearRightWheel.motorTorque = rearTorque;
         }
         else
         {
@@ -359,22 +611,63 @@ public class NPCCarController : MonoBehaviour
             frontRightWheel.motorTorque = 0f;
         }
 
-        UpdateBrakingSystem();
+        // Управление тормозами
+        if (Mathf.Abs(motorTorque) > 0.1f)
+        {
+            ReleaseBrakes();
+        }
+        else
+        {
+            UpdateBrakingSystem();
+        }
+
         UpdateWheelVisuals();
         ApplyAntiRoll();
         StabilizeCar();
     }
 
+    void ConfigureWheelsForReverse()
+    {
+        WheelFrictionCurve forwardFriction = new WheelFrictionCurve
+        {
+            extremumSlip = 0.3f, // было 0.4f
+            extremumValue = 1f,   // было 0.8f
+            asymptoteSlip = 0.5f, // было 0.6f
+            asymptoteValue = 0.75f, // было 0.5f
+            stiffness = 1.1f     // было 0.9f
+        };
+
+        foreach (var wheel in new[] { frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel })
+        {
+            wheel.forwardFriction = forwardFriction;
+            wheel.sidewaysFriction = new WheelFrictionCurve
+            {
+                extremumSlip = 0.2f,
+                extremumValue = 1f,
+                asymptoteSlip = 0.5f,
+                asymptoteValue = 0.5f,
+                stiffness = isReversing ? 1f : 1.5f
+            };
+        }
+    }
+
     void StabilizeCar()
     {
-        if (Vector3.Angle(transform.up, Vector3.up) > 45f)
+        // Режим застревания - уменьшаем стабилизацию для более резких движений
+        if (!isStuck)
         {
-            Vector3 torque = Vector3.Cross(transform.up, Vector3.up) * rb.mass * 0.1f;
-            rb.AddTorque(torque, ForceMode.Impulse);
+            // Обычная стабилизация
+            if (Vector3.Angle(transform.up, Vector3.up) > 30f)
+            {
+                Vector3 torque = Vector3.Cross(transform.up, Vector3.up) * rb.mass * 0.05f;
+                rb.AddTorque(torque, ForceMode.Impulse);
+            }
         }
 
-        float speedFactor = Mathf.Clamp01(currentSpeed / (maxSpeed / 3.6f));
-        rb.angularDamping = 0.5f + speedFactor * 2f;
+        // Увеличенное демпфирование при заднем ходе
+        float angularDamping = isReversing ? 2f : 0.5f;
+        rb.angularDamping = angularDamping + currentSpeed;
+        rb.linearDamping = Mathf.Lerp(0.1f, 0.01f, currentSpeed / (maxSpeed / 3.6f));
     }
 
     void ApplyAntiRoll()
