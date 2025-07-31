@@ -37,6 +37,7 @@ public class WheelController : MonoBehaviour
     public string throttleAxis = "Vertical";
     public string brakeAxis = "Brake";
     public bool invertSteering = false;
+    public float pedalInput; // Добавьте это в WheelController
 
     [Header("Acceleration Boost")]
     [Tooltip("Множитель крутящего момента на низких скоростях")]
@@ -52,7 +53,7 @@ public class WheelController : MonoBehaviour
 
     private float steeringInput;
     private float throttleInput;
-    private float brakeInput;
+    public float brakeInput;
     private Rigidbody carRigidbody;
     private float currentSpeed;
 
@@ -130,16 +131,23 @@ public class WheelController : MonoBehaviour
 
     void GetInput()
     {
+        // Обработка руля
         steeringInput = Input.GetAxis(steeringAxis) * steeringSensitivity;
         if (invertSteering) steeringInput *= -1;
         steeringInput = Mathf.Clamp(steeringInput, -1f, 1f);
 
-        throttleInput = Input.GetAxis(throttleAxis);
-        brakeInput = Input.GetAxis(brakeAxis);
+        // Получаем общий ввод с оси педалей (Axis 3)
+        pedalInput = Input.GetAxis(throttleAxis); // throttleAxis = "Joystick Axis 3"
+
+        // Газ (0 → +1)
+        throttleInput = Mathf.Clamp(pedalInput, 0f, 1f);
+
+        // Тормоз (0 → +1, но берём модуль отрицательной части)
+        brakeInput = Mathf.Clamp(-pedalInput, 0f, 1f);
     }
 
-    
-void ApplySteering()
+
+    void ApplySteering()
 {
     // Новая система поворота без зависимости от скорости
     float steerAngle;
@@ -169,7 +177,7 @@ void ApplySteeringAssist()
     // Помощь в поворотах - делает авто более отзывчивым
     if(steeringInput != 0)
     {
-        float turnAssist = carRigidbody.velocity.magnitude * steeringAssist * steeringInput;
+        float turnAssist = carRigidbody.linearVelocity.magnitude * steeringAssist * steeringInput;
         carRigidbody.AddTorque(transform.up * turnAssist, ForceMode.Acceleration);
     }
     
