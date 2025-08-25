@@ -2,20 +2,20 @@ using UnityEngine;
 
 public class SimpleInputTimer : MonoBehaviour
 {
-    [SerializeField] private WheelController player;
+    [SerializeField] private SimpleCarController player;
     private float _startTime;
     private bool _isTimerRunning;
 
     private void Start()
     {
         if (player == null)
-            player = FindObjectOfType<WheelController>();
+            player = FindObjectOfType<SimpleCarController>();
     }
 
     void Update()
     {
         // Остановка таймера при нажатии тормоза (pedalInput < 0)
-        if (_isTimerRunning && player.pedalInput < -0.1f) // -0.1f для избежания ложных срабатываний
+       // if (_isTimerRunning && player.pedalInput < -0.1f) // -0.1f для избежания ложных срабатываний
         {
             StopTimer();
         }

@@ -2,14 +2,14 @@ using UnityEngine;
 using System;
 public class TriggerZone : MonoBehaviour
 {
-    [SerializeField] WheelController player;
+    [SerializeField] SimpleCarController player;
     [SerializeField] Transform point;
     [SerializeField] NPCCarController npcCar;
     [SerializeField] SimpleInputTimer timer;
 
     private void Awake()
     {
-        player = FindAnyObjectByType<WheelController>();
+        player = FindAnyObjectByType<SimpleCarController>();
         timer = FindAnyObjectByType<SimpleInputTimer>();
     }
 

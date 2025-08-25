@@ -1,250 +1,272 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class WheelController : MonoBehaviour
+public class SimpleCarController : MonoBehaviour
 {
-    [Header("Wheel Colliders")]
-    public WheelCollider frontLeftWheel;
-    public WheelCollider frontRightWheel;
-    public WheelCollider rearLeftWheel;
-    public WheelCollider rearRightWheel;
+    [Header("Wheel References")]
+    public WheelCollider frontLeftWheelCollider;
+    public WheelCollider frontRightWheelCollider;
+    public WheelCollider rearLeftWheelCollider;
+    public WheelCollider rearRightWheelCollider;
 
-    [Header("Steering Settings")]
+    [Header("Wheel Meshes")]
+    public Transform frontLeftWheelMesh;
+    public Transform frontRightWheelMesh;
+    public Transform rearLeftWheelMesh;
+    public Transform rearRightWheelMesh;
+
+    [Header("Physics References")]
+    public Rigidbody vehicleRB;
+    public Transform steeringWheel;
+
+    [Header("Car Settings")]
+    public float maxForwardSpeed = 100f;
+    public float maxReverseSpeed = 30f;
+    public float horsePower = 1000f;
+    public float brakePower = 2000f;
+    public float handbrakeForce = 3000f;
     public float maxSteerAngle = 30f;
-    public float steeringSensitivity = 1.5f;
-    [Range(0, 1)] public float steeringHelper = 0.75f; // �������� �������
-    [Range(0, 1)] public float tractionControl = 0.75f; // �������� ���������
-    public bool speedDependentSteering = false; // Отключаем замедление на скорости
-    public float steeringResponseCurve = 2.0f; // Кривая отклика руля
+    public float steeringSpeed = 5f;
+    public float decelerationSpeed = 0.5f;
+    public float maxSteeringWheelRotation = 360f;
 
+    [Header("Drive Type")]
+    public DriveTypes driveType = DriveTypes.RWD;
 
-    [Header("Advanced Steering")]
-    public float steeringAssist = 0.3f; // Помощь в поворотах
-    public float counterSteerFactor = 0.5f; // Автоматический контрруль
+    // Input values
+    private float currentAccelerationValue = 0f;
+    private float currentBrakeValue = 0f;
+    private float currentHandbrakeValue = 0f;
+    private float currentSteerAngle = 0f;
+    private float targetSteerAngle = 0f;
+    private float speedFactor = 0f;
 
-    [Header("Engine Settings")]
-    public float maxMotorTorque = 1000f;
-    public float maxBrakeTorque = 2000f;
-    public AnimationCurve torqueCurve; // ������ ��������� ������� � ����������� �� ��������
+    // Wheel arrays
+    private WheelCollider[] wheels;
+    private Transform[] wheelMeshes;
 
-    [Header("Suspension Settings")]
-    public float suspensionSpring = 35000f;
-    public float suspensionDamper = 4500f;
-    public float suspensionDistance = 0.2f;
-    public Vector3 centerOfMassOffset = new Vector3(0, -0.5f, 0);
+    // Debug info
+    [SerializeField] private float currentSpeed = 0f;
 
-    [Header("Input Settings")]
-    public string steeringAxis = "Horizontal";
-    public string throttleAxis = "Vertical";
-    public string brakeAxis = "Brake";
-    public bool invertSteering = false;
-    public float pedalInput; // Добавьте это в WheelController
-
-    [Header("Acceleration Boost")]
-    [Tooltip("Множитель крутящего момента на низких скоростях")]
-    public float lowSpeedBoost = 1.5f;
-    [Tooltip("Скорость (км/ч), до которой действует ускорение")]
-    public float boostCutoffSpeed = 30f;
-    [Tooltip("Кривая плавного уменьшения boost'а")]
-    public AnimationCurve boostCurve = new AnimationCurve(
-        new Keyframe(0, 1),
-        new Keyframe(0.5f, 0.5f),
-        new Keyframe(1, 0)
-    );
-
-    private float steeringInput;
-    private float throttleInput;
-    public float brakeInput;
-    private Rigidbody carRigidbody;
-    private float currentSpeed;
-
-    void Start()
+    private void Awake()
     {
-        carRigidbody = GetComponent<Rigidbody>();
-        carRigidbody.centerOfMass += centerOfMassOffset;
-
-        // ��������� �������� ��� ���� �����
-        ConfigureSuspension();
-
-        // ������������� ������ ��������� �������
-        torqueCurve = new AnimationCurve(
-            new Keyframe(0, 1),
-            new Keyframe(50, 0.8f),
-            new Keyframe(100, 0.5f),
-            new Keyframe(150, 0.3f),
-            new Keyframe(200, 0.1f)
-        );
-    }
-
-    void Update()
-    {
-        GetInput();
-        currentSpeed = carRigidbody.linearVelocity.magnitude * 3.6f; // ��/�
-    }
-
-    void FixedUpdate()
-    {
-        ApplySteering();
-        ApplyThrottle();
-        ApplyBrakes();
-        ApplySteeringHelper();
-        ApplyTractionControl();
-    }
-
-    void ConfigureSuspension()
-    {
-        JointSpring spring = new JointSpring
+        wheels = new WheelCollider[]
         {
-            spring = suspensionSpring,
-            damper = suspensionDamper
+            frontLeftWheelCollider,
+            frontRightWheelCollider,
+            rearLeftWheelCollider,
+            rearRightWheelCollider
         };
 
-        WheelFrictionCurve forwardFriction = frontLeftWheel.forwardFriction;
-        forwardFriction.asymptoteValue = 0.5f;
-        forwardFriction.extremumSlip = 0.4f;
-        forwardFriction.stiffness = 1f;
-
-        WheelFrictionCurve sidewaysFriction = frontLeftWheel.sidewaysFriction;
-        sidewaysFriction.asymptoteValue = 0.75f;
-        sidewaysFriction.extremumSlip = 0.2f;
-        sidewaysFriction.stiffness = 1f;
-
-        frontLeftWheel.forwardFriction = forwardFriction;
-        frontLeftWheel.sidewaysFriction = sidewaysFriction;
-        frontRightWheel.forwardFriction = forwardFriction;
-        frontRightWheel.sidewaysFriction = sidewaysFriction;
-
-        rearLeftWheel.forwardFriction = forwardFriction;
-        rearLeftWheel.sidewaysFriction = sidewaysFriction;
-        rearRightWheel.forwardFriction = forwardFriction;
-        rearRightWheel.sidewaysFriction = sidewaysFriction;
-
-        frontLeftWheel.suspensionSpring = spring;
-        frontRightWheel.suspensionSpring = spring;
-        rearLeftWheel.suspensionSpring = spring;
-        rearRightWheel.suspensionSpring = spring;
-
-        frontLeftWheel.suspensionDistance = suspensionDistance;
-        frontRightWheel.suspensionDistance = suspensionDistance;
-        rearLeftWheel.suspensionDistance = suspensionDistance;
-        rearRightWheel.suspensionDistance = suspensionDistance;
-    }
-
-    void GetInput()
-    {
-        // Обработка руля
-        steeringInput = Input.GetAxis(steeringAxis) * steeringSensitivity;
-        if (invertSteering) steeringInput *= -1;
-        steeringInput = Mathf.Clamp(steeringInput, -1f, 1f);
-
-        // Получаем общий ввод с оси педалей (Axis 3)
-        pedalInput = Input.GetAxis(throttleAxis); // throttleAxis = "Joystick Axis 3"
-
-        // Газ (0 → +1)
-        throttleInput = Mathf.Clamp(pedalInput, 0f, 1f);
-
-        // Тормоз (0 → +1, но берём модуль отрицательной части)
-        brakeInput = Mathf.Clamp(-pedalInput, 0f, 1f);
-    }
-
-
-    void ApplySteering()
-{
-    // Новая система поворота без зависимости от скорости
-    float steerAngle;
-    
-    if(speedDependentSteering)
-    {
-        // Старая система с зависимостью от скорости
-        float speedFactor = Mathf.Clamp(1 - (currentSpeed / 150f), 0.1f, 1f);
-        steerAngle = Mathf.Pow(Mathf.Abs(steeringInput), steeringResponseCurve) * 
-                   Mathf.Sign(steeringInput) * maxSteerAngle * speedFactor;
-    }
-    else
-    {
-        // Новая система - полный угол всегда
-        steerAngle = Mathf.Pow(Mathf.Abs(steeringInput), steeringResponseCurve) * 
-                   Mathf.Sign(steeringInput) * maxSteerAngle;
-    }
-    
-    frontLeftWheel.steerAngle = steerAngle;
-    frontRightWheel.steerAngle = steerAngle;
-    
-    ApplySteeringAssist();
-}
-
-void ApplySteeringAssist()
-{
-    // Помощь в поворотах - делает авто более отзывчивым
-    if(steeringInput != 0)
-    {
-        float turnAssist = carRigidbody.linearVelocity.magnitude * steeringAssist * steeringInput;
-        carRigidbody.AddTorque(transform.up * turnAssist, ForceMode.Acceleration);
-    }
-    
-    // Автоматический контрруль для стабилизации
-    float counterSteer = -carRigidbody.angularVelocity.y * counterSteerFactor;
-    carRigidbody.AddTorque(transform.up * counterSteer, ForceMode.Acceleration);
-}
-
-    void ApplyThrottle()
-    {
-        // Расчет коэффициента boost'а
-        float boostFactor = boostCurve.Evaluate(currentSpeed / boostCutoffSpeed);
-        float finalBoost = Mathf.Lerp(1f, lowSpeedBoost, boostFactor);
-
-        // Учет кривой крутящего момента и boost'а
-        float torqueFactor = torqueCurve.Evaluate(currentSpeed);
-        float motorTorque = throttleInput * maxMotorTorque * torqueFactor * finalBoost;
-
-        // Применение крутящего момента в зависимости от привода
-        rearLeftWheel.motorTorque = motorTorque;
-        rearRightWheel.motorTorque = motorTorque;
-    }
-
-    void ApplyBrakes()
-    {
-        float brakeTorque = brakeInput * maxBrakeTorque;
-        frontLeftWheel.brakeTorque = brakeTorque;
-        frontRightWheel.brakeTorque = brakeTorque;
-        rearLeftWheel.brakeTorque = brakeTorque;
-        rearRightWheel.brakeTorque = brakeTorque;
-
-        // ���������� ���������� ��� �������� �����
-        if (throttleInput < 0)
+        wheelMeshes = new Transform[]
         {
-            rearLeftWheel.brakeTorque += Mathf.Abs(throttleInput) * maxBrakeTorque * 0.5f;
-            rearRightWheel.brakeTorque += Mathf.Abs(throttleInput) * maxBrakeTorque * 0.5f;
+            frontLeftWheelMesh,
+            frontRightWheelMesh,
+            rearLeftWheelMesh,
+            rearRightWheelMesh
+        };
+
+        if (vehicleRB == null)
+        {
+            vehicleRB = GetComponent<Rigidbody>();
         }
     }
 
-    void ApplySteeringHelper()
+    // Input methods
+    void OnAccelerate(InputValue accelerationValue)
     {
-        // �������� ������� - ��������� ���������� ����������������
-        if (steeringInput == 0 || carRigidbody.angularVelocity.magnitude > 0.1f)
+        currentAccelerationValue = accelerationValue.Get<float>();
+    }
+
+    void OnBrake(InputValue brakeValue)
+    {
+        currentBrakeValue = brakeValue.Get<float>();
+    }
+
+    void OnHandbrake(InputValue handbrakeValue)
+    {
+        currentHandbrakeValue = handbrakeValue.Get<float>();
+    }
+
+    void OnSteer(InputValue turnValue)
+    {
+        targetSteerAngle = turnValue.Get<float>() * maxSteerAngle;
+    }
+
+    // Main physics methods
+    void Acceleration()
+    {
+        // Reset all motor torques
+        foreach (var wheel in wheels)
         {
-            Vector3 angularVelocity = carRigidbody.angularVelocity;
-            angularVelocity.y *= 0.95f * (1 - steeringHelper);
-            carRigidbody.angularVelocity = angularVelocity;
+            wheel.motorTorque = 0;
+        }
+
+        // Determine direction based on input
+        if (currentAccelerationValue > 0.1f) // Forward
+        {
+            speedFactor = Mathf.InverseLerp(0, maxForwardSpeed, currentSpeed);
+            float currentMotorTorque = Mathf.Lerp(horsePower, 0, speedFactor);
+
+            if (currentSpeed < maxForwardSpeed)
+            {
+                ApplyMotorTorque(currentMotorTorque * currentAccelerationValue);
+            }
+        }
+        else if (currentAccelerationValue < -0.1f) // Reverse
+        {
+            speedFactor = Mathf.InverseLerp(0, maxReverseSpeed, Mathf.Abs(currentSpeed));
+            float currentMotorTorque = Mathf.Lerp(horsePower, 0, speedFactor);
+
+            if (currentSpeed > -maxReverseSpeed)
+            {
+                ApplyMotorTorque(currentMotorTorque * currentAccelerationValue);
+            }
         }
     }
 
-    void ApplyTractionControl()
+    void ApplyMotorTorque(float torque)
     {
-        // �������� ��������� - ������������� ����������� �����
-        WheelHit hit;
-        rearLeftWheel.GetGroundHit(out hit);
-        AdjustTorque(hit.forwardSlip);
-
-        rearRightWheel.GetGroundHit(out hit);
-        AdjustTorque(hit.forwardSlip);
-    }
-
-    void AdjustTorque(float forwardSlip)
-    {
-        if (forwardSlip > 0.5f)
+        switch (driveType)
         {
-            rearLeftWheel.motorTorque *= 1 - tractionControl;
-            rearRightWheel.motorTorque *= 1 - tractionControl;
+            case DriveTypes.RWD:
+                rearLeftWheelCollider.motorTorque = torque;
+                rearRightWheelCollider.motorTorque = torque;
+                break;
+            case DriveTypes.FWD:
+                frontLeftWheelCollider.motorTorque = torque;
+                frontRightWheelCollider.motorTorque = torque;
+                break;
+            case DriveTypes.AWD:
+                foreach (var wheel in wheels)
+                {
+                    wheel.motorTorque = torque;
+                }
+                break;
         }
     }
+
+    void Braking()
+    {
+        if (currentBrakeValue > 0.1f)
+        {
+            frontLeftWheelCollider.brakeTorque = currentBrakeValue * brakePower;
+            frontRightWheelCollider.brakeTorque = currentBrakeValue * brakePower;
+        }
+        else
+        {
+            frontLeftWheelCollider.brakeTorque = 0;
+            frontRightWheelCollider.brakeTorque = 0;
+        }
+    }
+
+    void Handbraking()
+    {
+        if (currentHandbrakeValue > 0.1f)
+        {
+            rearLeftWheelCollider.motorTorque = 0;
+            rearRightWheelCollider.motorTorque = 0;
+            rearLeftWheelCollider.brakeTorque = currentHandbrakeValue * handbrakeForce;
+            rearRightWheelCollider.brakeTorque = currentHandbrakeValue * handbrakeForce;
+        }
+        else
+        {
+            rearLeftWheelCollider.brakeTorque = 0;
+            rearRightWheelCollider.brakeTorque = 0;
+        }
+    }
+
+    void Steering()
+    {
+        float adjustedspeedFactor = Mathf.InverseLerp(20, maxForwardSpeed, Mathf.Abs(currentSpeed));
+        float adjustedTurnAngle = targetSteerAngle * (1 - adjustedspeedFactor);
+        currentSteerAngle = Mathf.Lerp(currentSteerAngle, adjustedTurnAngle, Time.deltaTime * steeringSpeed);
+
+        frontLeftWheelCollider.steerAngle = currentSteerAngle;
+        frontRightWheelCollider.steerAngle = currentSteerAngle;
+
+        UpdateWheelVisuals();
+    }
+
+    void Slowdown()
+    {
+        if (Mathf.Abs(currentAccelerationValue) < 0.1f && currentBrakeValue < 0.1f && currentHandbrakeValue < 0.1f)
+        {
+            // ����������: ���������� ���������� �������� ��� ��������
+#if UNITY_6000_0_OR_NEWER
+            vehicleRB.linearVelocity = Vector3.Lerp(vehicleRB.linearVelocity, Vector3.zero, Time.deltaTime * decelerationSpeed);
+#else
+            vehicleRB.velocity = Vector3.Lerp(vehicleRB.velocity, Vector3.zero, Time.deltaTime * decelerationSpeed);
+#endif
+        }
+    }
+
+    void UpdateWheelVisuals()
+    {
+        for (int i = 0; i < wheels.Length; i++)
+        {
+            if (wheelMeshes[i] != null)
+            {
+                wheels[i].GetWorldPose(out Vector3 position, out Quaternion rotation);
+                wheelMeshes[i].SetPositionAndRotation(position, rotation);
+            }
+        }
+    }
+
+    void RotateSteeringWheel()
+    {
+        if (steeringWheel != null)
+        {
+            float normalizedSteerAngle = Mathf.Clamp(frontLeftWheelCollider.steerAngle, -maxSteerAngle, maxSteerAngle);
+            float rotation = Mathf.Lerp(maxSteeringWheelRotation, -maxSteeringWheelRotation,
+                (normalizedSteerAngle + maxSteerAngle) / (2 * maxSteerAngle));
+
+            steeringWheel.localRotation = Quaternion.Euler(steeringWheel.localEulerAngles.x, 0, rotation);
+        }
+    }
+
+    void UpdateSpeed()
+    {
+        // ����������: ���������� ���������� �������� ��� ��������
+#if UNITY_6000_0_OR_NEWER
+        currentSpeed = Vector3.Dot(transform.forward, vehicleRB.linearVelocity) * 3.6f;
+#else
+        currentSpeed = Vector3.Dot(transform.forward, vehicleRB.velocity) * 3.6f;
+#endif
+    }
+
+    // Main update loop
+    private void FixedUpdate()
+    {
+        Acceleration();
+        Braking();
+        Handbraking();
+        Steering();
+        Slowdown();
+        RotateSteeringWheel();
+
+        UpdateSpeed();
+        UpdateWheelVisuals();
+    }
+
+    public bool InAir()
+    {
+        foreach (var wheel in wheels)
+        {
+            if (wheel.GetGroundHit(out _))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Public methods for external access
+    public float GetCurrentSpeed() => currentSpeed;
+    public float GetAccelerationInput() => currentAccelerationValue;
+    public float GetBrakeInput() => currentBrakeValue;
+    public float GetSteeringInput() => targetSteerAngle / maxSteerAngle;
+
+    // Enums
+    public enum DriveTypes { RWD, FWD, AWD }
 }
