@@ -218,16 +218,22 @@ public class SimpleCarController : MonoBehaviour
         if (steeringWheel != null)
         {
             float normalizedSteerAngle = Mathf.Clamp(frontLeftWheelCollider.steerAngle, -maxSteerAngle, maxSteerAngle);
-            float rotation = Mathf.Lerp(maxSteeringWheelRotation, -maxSteeringWheelRotation,
+
+            
+            float rotation = Mathf.Lerp(-maxSteeringWheelRotation, maxSteeringWheelRotation,
                 (normalizedSteerAngle + maxSteerAngle) / (2 * maxSteerAngle));
 
-            steeringWheel.localRotation = Quaternion.Euler(steeringWheel.localEulerAngles.x, 0, rotation);
+            steeringWheel.localRotation = Quaternion.Euler(
+                steeringWheel.localEulerAngles.x,
+                180f,     
+                rotation-180
+            );
         }
     }
 
     void UpdateSpeed()
     {
-        // Исправлено: используем правильное свойство для скорости
+        
 #if UNITY_6000_0_OR_NEWER
         currentSpeed = Vector3.Dot(transform.forward, vehicleRB.linearVelocity) * 3.6f;
 #else
