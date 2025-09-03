@@ -35,7 +35,7 @@ public class SimpleCarController : MonoBehaviour
 
     // Input values
     private float currentAccelerationValue = 0f;
-    private float currentBrakeValue = 0f;
+    public float currentBrakeValue { get; private set; } = 0f;
     private float currentHandbrakeValue = 0f;
     private float currentSteerAngle = 0f;
     private float targetSteerAngle = 0f;

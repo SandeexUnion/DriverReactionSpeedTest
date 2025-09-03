@@ -14,8 +14,8 @@ public class SimpleInputTimer : MonoBehaviour
 
     void Update()
     {
-        // Остановка таймера при нажатии тормоза (pedalInput < 0)
-       // if (_isTimerRunning && player.pedalInput < -0.1f) // -0.1f для избежания ложных срабатываний
+        // Остановка таймера при нажатии тормоза
+       if(player.currentBrakeValue>0.1f)
         {
             StopTimer();
         }
