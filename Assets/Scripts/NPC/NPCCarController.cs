@@ -136,7 +136,7 @@ public class NPCCarController : MonoBehaviour
     #region Main Update Loop
     void FixedUpdate()
     {
-        if (waypoints.Count == 0) return;
+        if (waypoints.Count == 0 || waypoints == null) return;
 
         CheckSlope();
         currentSpeed = rb.linearVelocity.magnitude;
@@ -153,8 +153,16 @@ public class NPCCarController : MonoBehaviour
             isStuck = false;
             stuckTimer = 0f;
         }
-
-        currentTargetPosition = waypoints[currentWaypointIndex].position;
+        try
+        {
+            currentTargetPosition = waypoints[currentWaypointIndex].position;
+        }
+        catch (System.Exception)
+        {
+            Debug.LogError("Нет точек");
+            
+        }
+        
         currentTargetPosition.y = transform.position.y;
 
         Vector3 toTarget = currentTargetPosition - transform.position;
@@ -254,6 +262,10 @@ public class NPCCarController : MonoBehaviour
         }
 
         isReversing = false;
+        if(currentWaypointIndex >= waypoints.Count-1)
+        {
+            return;
+        }
         currentTargetPosition = waypoints[currentWaypointIndex].position;
     }
     #endregion
