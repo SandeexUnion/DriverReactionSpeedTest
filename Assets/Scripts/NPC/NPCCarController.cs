@@ -1,9 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Контроллер для управления NPC-машиной, следующей по заданным точкам пути
-/// </summary>
 public class NPCCarController : MonoBehaviour
 {
     #region Wheel Settings
@@ -114,8 +111,8 @@ public class NPCCarController : MonoBehaviour
         if (waypoints == null || waypoints.Count == 0)
         {
             Debug.LogError("No waypoints assigned to NPCCarController!");
-            enabled = false;
-            return;
+            //enabled = false;
+            //return;
         }
 
         ConfigureWheelColliders();
@@ -141,13 +138,11 @@ public class NPCCarController : MonoBehaviour
         CheckSlope();
         currentSpeed = rb.linearVelocity.magnitude;
 
-        // Ограничение угловой скорости при реверсе
         if (isReversing && rb.angularVelocity.magnitude > 2f)
         {
             rb.angularVelocity = rb.angularVelocity.normalized * 2f;
         }
 
-        // Сбрасываем состояние застревания при достаточной скорости
         if (currentSpeed > 2f && isStuck)
         {
             isStuck = false;

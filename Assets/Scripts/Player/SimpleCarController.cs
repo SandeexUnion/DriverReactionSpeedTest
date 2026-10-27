@@ -33,7 +33,11 @@ public class SimpleCarController : MonoBehaviour
     [Header("Drive Type")]
     public DriveTypes driveType = DriveTypes.RWD;
 
-    // Input values
+    [Header("Lights")]
+    [SerializeField] private Light[] lights; 
+
+
+    
     private float currentAccelerationValue = 0f;
     public float currentBrakeValue { get; private set; } = 0f;
     private float currentHandbrakeValue = 0f;
@@ -41,11 +45,11 @@ public class SimpleCarController : MonoBehaviour
     private float targetSteerAngle = 0f;
     private float speedFactor = 0f;
 
-    // Wheel arrays
+    
     private WheelCollider[] wheels;
     private Transform[] wheelMeshes;
 
-    // Debug info
+    
     [SerializeField] private float currentSpeed = 0f;
 
     private void Awake()
@@ -72,7 +76,7 @@ public class SimpleCarController : MonoBehaviour
         }
     }
 
-    // Input methods
+    
     void OnAccelerate(InputValue accelerationValue)
     {
         currentAccelerationValue = accelerationValue.Get<float>();
@@ -93,17 +97,17 @@ public class SimpleCarController : MonoBehaviour
         targetSteerAngle = turnValue.Get<float>() * maxSteerAngle;
     }
 
-    // Main physics methods
+    
     void Acceleration()
     {
-        // Reset all motor torques
+       
         foreach (var wheel in wheels)
         {
             wheel.motorTorque = 0;
         }
 
-        // Determine direction based on input
-        if (currentAccelerationValue > 0.1f) // Forward
+        
+        if (currentAccelerationValue > 0.1f) 
         {
             speedFactor = Mathf.InverseLerp(0, maxForwardSpeed, currentSpeed);
             float currentMotorTorque = Mathf.Lerp(horsePower, 0, speedFactor);
@@ -113,7 +117,7 @@ public class SimpleCarController : MonoBehaviour
                 ApplyMotorTorque(currentMotorTorque * currentAccelerationValue);
             }
         }
-        else if (currentAccelerationValue < -0.1f) // Reverse
+        else if (currentAccelerationValue < -0.1f) 
         {
             speedFactor = Mathf.InverseLerp(0, maxReverseSpeed, Mathf.Abs(currentSpeed));
             float currentMotorTorque = Mathf.Lerp(horsePower, 0, speedFactor);
@@ -192,7 +196,7 @@ public class SimpleCarController : MonoBehaviour
     {
         if (Mathf.Abs(currentAccelerationValue) < 0.1f && currentBrakeValue < 0.1f && currentHandbrakeValue < 0.1f)
         {
-            // Исправлено: используем правильное свойство для скорости
+            
 #if UNITY_6000_0_OR_NEWER
             vehicleRB.linearVelocity = Vector3.Lerp(vehicleRB.linearVelocity, Vector3.zero, Time.deltaTime * decelerationSpeed);
 #else
@@ -230,6 +234,33 @@ public class SimpleCarController : MonoBehaviour
             );
         }
     }
+    void OnLightsToggle(InputValue inputValue)
+    {
+        if (inputValue.isPressed)
+        {
+            ToggleLights();
+        }
+    }
+
+    public void ToggleLights()
+    {
+        if (lights != null && lights.Length > 0)
+        {
+            foreach (Light light in lights)
+            {
+                if (light != null)
+                {
+                    light.enabled = !light.enabled;
+                }
+            }
+            Debug.Log($"All lights toggled. State: {(lights[0].enabled ? "ON" : "OFF")}");
+        }
+        else
+        {
+            Debug.LogWarning("Lights array is not set or empty in the inspector!");
+        }
+    }
+
 
     void UpdateSpeed()
     {
@@ -267,12 +298,12 @@ public class SimpleCarController : MonoBehaviour
         return true;
     }
 
-    // Public methods for external access
+    
     public float GetCurrentSpeed() => currentSpeed;
     public float GetAccelerationInput() => currentAccelerationValue;
     public float GetBrakeInput() => currentBrakeValue;
     public float GetSteeringInput() => targetSteerAngle / maxSteerAngle;
 
-    // Enums
+    
     public enum DriveTypes { RWD, FWD, AWD }
 }

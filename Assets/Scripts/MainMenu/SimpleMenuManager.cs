@@ -15,7 +15,7 @@ public class SimpleMenuManager : MonoBehaviour
     public Transform levelsGrid;
 
     [Header("Settings")]
-    public string levelPrefix = "LEVEL"; // Префикс для поиска уровней
+    public string levelPrefix = "LEVEL"; 
 
     private List<string> levelScenes = new List<string>();
 
@@ -37,14 +37,13 @@ public class SimpleMenuManager : MonoBehaviour
             string scenePath = SceneUtility.GetScenePathByBuildIndex(i);
             string sceneName = System.IO.Path.GetFileNameWithoutExtension(scenePath);
 
-            // Ищем все сцены, которые начинаются с указанного префикса
             if (sceneName.StartsWith(levelPrefix))
             {
                 levelScenes.Add(sceneName);
             }
         }
 
-        Debug.Log($"Найдено уровней: {levelScenes.Count}");
+        Debug.Log($"РќР°Р№РґРµРЅРѕ СѓСЂРѕРІРЅРµР№: {levelScenes.Count}");
     }
 
     private void ShowLevelsMenu()
@@ -62,13 +61,11 @@ public class SimpleMenuManager : MonoBehaviour
 
     private void CreateLevelButtons()
     {
-        // Очищаем старые кнопки
         foreach (Transform child in levelsGrid)
         {
             Destroy(child.gameObject);
         }
 
-        // Создаем новые кнопки
         for (int i = 0; i < levelScenes.Count; i++)
         {
             GameObject buttonObj = Instantiate(levelButtonPrefab, levelsGrid);
@@ -77,10 +74,9 @@ public class SimpleMenuManager : MonoBehaviour
 
             if (text != null)
             {
-                text.text = $"Уровень {i + 1}";
+                text.text = $"РЈСЂРѕРІРµРЅСЊ {i + 1}";
             }
 
-            // Сохраняем имя сцены в переменную для использования в лямбде
             string sceneName = levelScenes[i];
             button.onClick.AddListener(() => LoadLevel(sceneName));
         }
@@ -88,7 +84,7 @@ public class SimpleMenuManager : MonoBehaviour
 
     private void LoadLevel(string sceneName)
     {
-        Debug.Log($"Загружаем сцену: {sceneName}");
+        Debug.Log($"Р—Р°РіСЂСѓР¶Р°РµРј СЃС†РµРЅСѓ: {sceneName}");
         SceneManager.LoadScene(sceneName);
     }
 }

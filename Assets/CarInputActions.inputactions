@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "CarInputActions",
     "maps": [
         {
@@ -27,7 +28,7 @@
                     "name": "Accelerate",
                     "type": "Value",
                     "id": "f34630ff-e16d-4903-9335-fa0e02a81cb0",
-                    "expectedControlType": "",
+                    "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
@@ -36,7 +37,7 @@
                     "name": "Brake",
                     "type": "Value",
                     "id": "68512edc-0312-4d01-b020-9719164ebf74",
-                    "expectedControlType": "",
+                    "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
@@ -52,7 +53,7 @@
                 },
                 {
                     "name": "Handbrake",
-                    "type": "Value",
+                    "type": "Button",
                     "id": "43699df9-1a67-48a1-88a6-0e15256ffefb",
                     "expectedControlType": "",
                     "processors": "",
@@ -139,6 +140,42 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "IncreaseFog",
+                    "type": "Value",
+                    "id": "0b3a86ee-c516-4621-8a97-520b43917fe1",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "DecreaseFog",
+                    "type": "Value",
+                    "id": "60bd0090-0177-48d5-95ef-4b0cbdf2ab90",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Monitor",
+                    "type": "Value",
+                    "id": "2f36bf75-9424-42ef-9bc4-374cd28e7c58",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Escape",
+                    "type": "Value",
+                    "id": "ad959894-7fa9-4144-97fd-5854d49f82ad",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -254,17 +291,6 @@
                 },
                 {
                     "name": "",
-                    "id": "99b890fc-de48-4617-a0f1-8ecbe1ccf788",
-                    "path": "<Keyboard>/s",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Brake",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "d60a8d16-ef55-438c-affb-01c93b04af04",
                     "path": "<Keyboard>/downArrow",
                     "interactions": "",
@@ -281,6 +307,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
+                    "action": "Brake",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6bea1379-8224-4c99-bf46-5bcfc14bd39a",
+                    "path": "<Keyboard>/s",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
                     "action": "Brake",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -535,6 +572,61 @@
                     "processors": "",
                     "groups": "",
                     "action": "StartCar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f6b8970d-0fa0-4ae1-b11c-450711f838af",
+                    "path": "<Keyboard>/equals",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "IncreaseFog",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7732466b-d73d-45ee-803b-41af5b2ebad8",
+                    "path": "<Keyboard>/numpadPlus",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "IncreaseFog",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "cd70423d-66cd-4589-9a78-0f689a297667",
+                    "path": "<Keyboard>/minus",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DecreaseFog",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fee8af60-7295-40ca-8642-bf332492868a",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Monitor",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5a02447f-13fa-40e0-a010-f56b878f8b51",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Escape",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
