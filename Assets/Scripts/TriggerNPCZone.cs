@@ -14,12 +14,14 @@ public class TriggerNPCZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        Debug.Log($"Объект {other.gameObject.name} вошел в триггерную зону.");
         if (npcCar != null && other.gameObject == npcCar.gameObject)
         {
             timer.StartTimer();
         }
-        if (npcMan != null && other.gameObject == npcMan.gameObject)
+        if (npcMan != null && other.gameObject == npcMan.gameObject || other.gameObject.CompareTag("npcman"))
         {
+            Debug.Log("NPC Man entered the trigger zone.");
             timer.StartTimer();
         }
     }

@@ -33,9 +33,10 @@ public class TriggerZone : MonoBehaviour
 
     private void ActivateNpcMan()
     {
+        Debug.Log("Activating NPC Man...");
         if (npcMan != null)
         {
-            
+            Debug.Log("Starting NPC Man movement.");
             NPCManController manToActivate = ChooseMan();
 
             
@@ -45,7 +46,7 @@ public class TriggerZone : MonoBehaviour
 
     private NPCManController ChooseMan()
     {
-        
+        Debug.Log("Choosing which NPC Man to activate...");
         if (npcMan2 == null) return npcMan;
 
         

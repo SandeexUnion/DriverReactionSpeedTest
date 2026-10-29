@@ -13,6 +13,7 @@ public class SimpleMenuManager : MonoBehaviour
     public Button backButton;
     public GameObject levelButtonPrefab;
     public Transform levelsGrid;
+    public Button exitButton;
 
     [Header("Settings")]
     public string levelPrefix = "LEVEL"; 
@@ -23,6 +24,7 @@ public class SimpleMenuManager : MonoBehaviour
     {
         startButton.onClick.AddListener(ShowLevelsMenu);
         backButton.onClick.AddListener(ShowMainMenu);
+        exitButton.onClick.AddListener(ExitGame);
         FindLevelScenes();
     }
 
@@ -86,5 +88,10 @@ public class SimpleMenuManager : MonoBehaviour
     {
         Debug.Log($"Загружаем сцену: {sceneName}");
         SceneManager.LoadScene(sceneName);
+    }
+    private void ExitGame()
+    {
+        Debug.Log("Выход из игры");
+        Application.Quit();
     }
 }

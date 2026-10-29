@@ -21,7 +21,7 @@ public class NPCManControllerAuto : MonoBehaviour
         while (true) 
         {
             agent.SetDestination(currentDestination.transform.position); 
-            yield return new WaitUntil(() => !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance); // Ждем пока он дойдет до currentDestination
+            yield return new WaitUntil(() => !agent.pathPending && agent.remainingDistance <= 1); // Ждем пока он дойдет до currentDestination
             SwitchDestination(); 
         }
     }
